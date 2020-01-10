@@ -4,7 +4,7 @@
 Summary: Tools for searching and reading man pages
 Name: man-db
 Version: 2.6.3
-Release: 11%{?dist}
+Release: 6%{?dist}
 # GPLv2+ .. man-db
 # GPLv3+ .. gnulib
 License: GPLv2+ and GPLv3+
@@ -33,8 +33,6 @@ Patch6: man-db-2.6.3-gcc.patch
 Patch7: man-db-2.6.3-valgrind.patch
 # fixed certain man pages to match options with --help and --usage
 Patch8: man-db-2.6.3-man-options.patch
-# resolves: #1515352
-Patch9: man-db-2.6.3-easter-egg.patch
 
 Obsoletes: man < 2.0
 Provides: man = %{version}
@@ -43,7 +41,7 @@ Provides: man-pages-reader = %{version}
 Provides: bundled(gnulib) = %{gnulib_ver}
 
 Requires: coreutils, grep, groff-base, gzip, less
-BuildRequires: gdbm-devel, gettext, groff, less, libpipeline-devel, po4a, zlib-devel
+BuildRequires: gdbm-devel, gettext, groff, less, libpipeline-devel, zlib-devel
 
 %description
 The man-db package includes five tools for browsing man-pages:
@@ -64,7 +62,6 @@ manual pages.
 %patch6 -p1 -b .gcc
 %patch7 -p1 -b .valgrind-mem
 %patch8 -p1 -b .man-options
-%patch9 -p1 -b .easter-egg
 
 %build
 %configure \
@@ -134,35 +131,10 @@ install -D -p -m 0644 %{SOURCE2} $RPM_BUILD_ROOT/etc/sysconfig/man-db
 %{_mandir}/man8/accessdb.8*
 %{_mandir}/man8/catman.8*
 %{_mandir}/man8/mandb.8*
-%lang(de)   %{_datadir}/man/de/man*/*
 %lang(es)   %{_datadir}/man/es/man*/*
-%lang(fr)   %{_datadir}/man/fr/man*/*
-%lang(id)   %{_datadir}/man/id/man*/*
 %lang(it)   %{_datadir}/man/it/man*/*
-%lang(ja)   %{_datadir}/man/ja/man*/*
-%lang(nl)   %{_datadir}/man/nl/man*/*
-%lang(pl)   %{_datadir}/man/pl/man*/*
-%lang(ru)   %{_datadir}/man/ru/man*/*
 
 %changelog
-* Tue Jul 10 2018 Nikola Forró <nforro@redhat.com> - 2.6.3-11
-- related: #1515352
-  build and install all translated man pages
-
-* Tue Nov 21 2017 Nikola Forró <nforro@redhat.com> - 2.6.3-10
-- resolves: #1515352
-  remove easter egg interfering with non-error cases
-
-* Mon Mar 17 2014 Peter Schiffer <pschiffe@redhat.com> - 2.6.3-9
-- resolves: #1067085
-  fixed crash when running man with -M parameter
-
-* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 2.6.3-8
-- Mass rebuild 2014-01-24
-
-* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 2.6.3-7
-- Mass rebuild 2013-12-27
-
 * Mon Apr  8 2013 Peter Schiffer <pschiffe@redhat.com> - 2.6.3-6
 - resolves: #948695
   fixed double free

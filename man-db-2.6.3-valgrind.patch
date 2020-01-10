@@ -1,6 +1,6 @@
-diff -upr man-db-2.6.3.orig/lib/encodings.c man-db-2.6.3/lib/encodings.c
---- man-db-2.6.3.orig/lib/encodings.c	2013-09-24 18:10:58.730634000 +0200
-+++ man-db-2.6.3/lib/encodings.c	2013-09-24 18:11:49.095281568 +0200
+diff -up man-db-2.6.3/lib/encodings.c.valgrind-mem man-db-2.6.3/lib/encodings.c
+--- man-db-2.6.3/lib/encodings.c.valgrind-mem	2013-04-05 18:19:01.402892699 +0200
++++ man-db-2.6.3/lib/encodings.c	2013-04-05 18:19:01.419892450 +0200
 @@ -559,6 +559,7 @@ const char *get_locale_charset (void)
  
  	/* Restore LC_CTYPE to its value on entry to this function. */
@@ -9,9 +9,30 @@ diff -upr man-db-2.6.3.orig/lib/encodings.c man-db-2.6.3/lib/encodings.c
  
  	if (charset && *charset)
  		return get_canonical_charset_name (charset);
-diff -upr man-db-2.6.3.orig/src/check_mandirs.c man-db-2.6.3/src/check_mandirs.c
---- man-db-2.6.3.orig/src/check_mandirs.c	2013-09-24 18:10:58.735634000 +0200
-+++ man-db-2.6.3/src/check_mandirs.c	2013-09-24 18:11:49.096281561 +0200
+@@ -596,9 +597,12 @@ char *find_charset_locale (const char *c
+ 			locale = xstrdup("en_US.UTF-8");
+ 			if (setlocale (LC_CTYPE, locale)) {
+ 				setlocale (LC_CTYPE, saved_locale);
++				free (saved_locale);
+ 				return locale;
+ 			}
+ 		}
++		free (saved_locale);
++		free (locale);
+ 		return NULL;
+ 	}
+ 
+@@ -628,6 +632,7 @@ char *find_charset_locale (const char *c
+ 
+ out:
+ 	setlocale (LC_CTYPE, saved_locale);
++	free (saved_locale);
+ 	fclose (supported);
+ 	return locale;
+ }
+diff -up man-db-2.6.3/src/check_mandirs.c.valgrind-mem man-db-2.6.3/src/check_mandirs.c
+--- man-db-2.6.3/src/check_mandirs.c.valgrind-mem	2013-04-05 18:19:01.415892509 +0200
++++ man-db-2.6.3/src/check_mandirs.c	2013-04-05 18:19:01.420892435 +0200
 @@ -442,6 +442,7 @@ static int testmandirs (const char *path
  
  	if (chdir (path) != 0) {
@@ -42,9 +63,24 @@ diff -upr man-db-2.6.3.orig/src/check_mandirs.c man-db-2.6.3/src/check_mandirs.c
  			return 0;
  		}
  
-diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
---- man-db-2.6.3.orig/src/man.c	2013-09-24 18:10:58.732634000 +0200
-+++ man-db-2.6.3/src/man.c	2013-09-24 18:11:49.096281561 +0200
+diff -up man-db-2.6.3/src/manconv_client.c.valgrind-mem man-db-2.6.3/src/manconv_client.c
+--- man-db-2.6.3/src/manconv_client.c.valgrind-mem	2011-01-04 04:04:50.000000000 +0100
++++ man-db-2.6.3/src/manconv_client.c	2013-04-05 18:40:45.360739910 +0200
+@@ -111,8 +111,10 @@ void add_manconv (pipeline *p, const cha
+ 	char *name;
+ 	pipecmd *cmd;
+ 
+-	if (STREQ (source, "UTF-8") && STREQ (target, "UTF-8"))
++	if (STREQ (source, "UTF-8") && STREQ (target, "UTF-8")) {
++		free (codes);
+ 		return;
++	}
+ 
+ 	/* informational only; no shell quoting concerns */
+ 	name = appendstr (NULL, MANCONV, " -f ", NULL);
+diff -up man-db-2.6.3/src/man.c.valgrind-mem man-db-2.6.3/src/man.c
+--- man-db-2.6.3/src/man.c.valgrind-mem	2013-04-05 18:19:01.408892611 +0200
++++ man-db-2.6.3/src/man.c	2013-04-05 18:40:56.233580113 +0200
 @@ -188,7 +188,7 @@ static char *manpathlist[MAXDIRS];
  /* globals */
  int quiet = 1;
@@ -54,6 +90,15 @@ diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
  MYDBM_FILE dbf; 
  extern const char *extension; /* for globbing.c */
  extern char *user_config_file;	/* defined in manp.c */
+@@ -207,7 +207,7 @@ static char *internal_locale, *multiple_
+ static const char *prompt_string;
+ static char *less;
+ static const char *std_sections[] = STD_SECTIONS;
+-static char *manp;
++static char *manp = NULL;
+ static const char *external;
+ static struct hashtable *db_hash = NULL;
+ 
 @@ -950,7 +950,7 @@ static int local_man_loop (const char *a
  
  			if (directory_on_path (argv_dir)) {
@@ -74,7 +119,7 @@ diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
  
  				old_manpathlist = XNMALLOC (MAXDIRS, char *);
  				memcpy (old_manpathlist, manpathlist,
-@@ -1167,15 +1169,21 @@ int main (int argc, char *argv[])
+@@ -1167,14 +1169,21 @@ int main (int argc, char *argv[])
  			manp = get_manpath ("");
  			printf ("%s\n", manp);
  			exit (OK);
@@ -91,24 +136,40 @@ diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
  
 -	if (manp == NULL)
 -		manp = locale_manpath (get_manpath (alt_system_name));
--	else
 +	if (manp == NULL) {
 +		char *mp = get_manpath (alt_system_name);
 +		manp = locale_manpath (mp);
 +		free (mp);
-+	} else
++	}
+ 	else
  		free (get_manpath (NULL));
  
- 	debug ("manpath search path (with duplicates) = %s\n", manp);
-@@ -1350,6 +1358,7 @@ int main (int argc, char *argv[])
+@@ -1350,6 +1359,14 @@ int main (int argc, char *argv[])
  	if (cwd[0])
  		chdir (cwd);
  
-+	free (database);
++	if (database) {
++		free (database);
++		database = NULL;
++	}
++	if (manp) {
++		free (manp);
++		manp = NULL;
++	}
  	free_pathlist (manpathlist);
  	free (cwd);
  	free (internal_locale);
-@@ -2327,6 +2336,7 @@ static void format_display (pipeline *de
+@@ -1810,6 +1827,9 @@ static pipeline *make_roff_command (cons
+ 		pipeline_command (p, cmd);
+ 	}
+ 
++	/* free pp_string */
++	get_preprocessors_from_file(NULL);
++
+ 	free (page_encoding);
+ 	return p;
+ }
+@@ -2327,6 +2347,7 @@ static void format_display (pipeline *de
  			       htmldir);
  		free (htmlfile);
  		free (htmldir);
@@ -116,7 +177,7 @@ diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
  	} else
  #endif /* TROFF_IS_GROFF */
  	/* TODO: check format_cmd status too? */
-@@ -2498,6 +2508,7 @@ static int display (const char *dir, con
+@@ -2498,6 +2519,7 @@ static int display (const char *dir, con
  				free (name);
  				free_locale_bits (&bits);
  			}
@@ -124,7 +185,7 @@ diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
  		}
  #endif /* TROFF_IS_GROFF */
  
-@@ -2564,6 +2575,7 @@ static int display (const char *dir, con
+@@ -2564,6 +2586,7 @@ static int display (const char *dir, con
  			if (prompt && do_prompt (title)) {
  				pipeline_free (format_cmd);
  				pipeline_free (decomp);
@@ -132,7 +193,7 @@ diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
  				return 0;
  			}
  			drop_effective_privs ();
-@@ -2690,6 +2702,7 @@ static int display (const char *dir, con
+@@ -2690,6 +2713,7 @@ static int display (const char *dir, con
  			if (prompt && do_prompt (title)) {
  				pipeline_free (format_cmd);
  				pipeline_free (decomp);
@@ -140,7 +201,7 @@ diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
  				if (local_man_file)
  					return 1;
  				else
-@@ -2741,6 +2754,8 @@ static int display (const char *dir, con
+@@ -2741,6 +2765,8 @@ static int display (const char *dir, con
  		}
  	}
  
@@ -149,7 +210,7 @@ diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
  	pipeline_free (format_cmd);
  	pipeline_free (decomp);
  
-@@ -2802,6 +2817,7 @@ static char *find_cat_file (const char *
+@@ -2802,6 +2828,7 @@ static char *find_cat_file (const char *
  				*tmp = 0;
  			if (is_directory (cat_dir)) {
  				debug ("will try cat file %s\n", cat_file);
@@ -157,27 +218,23 @@ diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
  				return cat_file;
  			} else
  				debug ("cat dir %s does not exist\n", cat_dir);
-@@ -3276,6 +3292,8 @@ static int try_section (const char *path
+@@ -3272,6 +3299,7 @@ static int try_section (const char *path
+ 		}
+ 	}
+ 
++	int f;
+ 	for (np = names; np && *np; np++) {
  		struct mandata *info = infoalloc ();
  		char *info_buffer = filename_info (*np, info, name);
- 		const char *ult;
-+		int f;
-+
- 		if (!info_buffer) {
- 			free_mandata_struct (info);
- 			continue;
-@@ -3300,8 +3318,17 @@ static int try_section (const char *path
+@@ -3300,8 +3328,15 @@ static int try_section (const char *path
  		else
  			info->id = SO_MAN;
  
 -		found += add_candidate (cand_head, CANDIDATE_FILESYSTEM,
--					cat, name, path, ult, info);
 +		f = add_candidate (cand_head, CANDIDATE_FILESYSTEM,
-+				   cat, name, path, ult, info);
+ 					cat, name, path, ult, info);
 +		found += f;
-+		/* Free info and info_buffer if they weren't added to the
-+		 * candidates.
-+		 */
++		/* Free info and info_buffer if it wasn't added to the candidates. */
 +		if (f == 0) {
 +			free (info_buffer);
 +			info->addr = NULL;
@@ -186,25 +243,23 @@ diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
  		/* Don't free info and info_buffer here. */
  	}
  
-@@ -3319,9 +3346,15 @@ static int display_filesystem (struct ca
+@@ -3319,9 +3354,13 @@ static int display_filesystem (struct ca
  	char *title = appendstr (NULL, candp->source->name,
  				 "(", candp->source->ext, ")", NULL);
  	if (candp->cat) {
 -		if (troff || want_encoding || recode)
-+		int r;
-+
 +		if (troff || want_encoding || recode) {
 +			free (title);
  			return 0;
 -		return display (candp->path, NULL, filename, title, NULL);
 +		}
-+		r = display (candp->path, NULL, filename, title, NULL);
++		int r = display (candp->path, NULL, filename, title, NULL);
 +		free (title);
 +		return r;
  	} else {
  		const char *man_file;
  		char *cat_file;
-@@ -3344,6 +3377,7 @@ static int display_filesystem (struct ca
+@@ -3344,6 +3383,7 @@ static int display_filesystem (struct ca
  		free (lang);
  		lang = NULL;
  		free (title);
@@ -212,15 +267,18 @@ diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
  
  		return found;
  	}
-@@ -3571,6 +3605,7 @@ static int try_db (const char *manpath,
+@@ -3571,6 +3611,10 @@ static int try_db (const char *manpath,
  	/* find out where our db for this manpath should be */
  
  	catpath = get_catpath (manpath, global_manpath ? SYSTEM_CAT : USER_CAT);
-+	free (database);
++	if (database) {
++		free (database);
++		database = NULL;
++	}
  	if (catpath) {
  		database = mkdbname (catpath);
  		free (catpath);
-@@ -3942,7 +3977,7 @@ static int man (const char *name, int *f
+@@ -3942,7 +3986,7 @@ static int man (const char *name, int *f
  
  	for (cand = candidates; cand; cand = candnext) {
  		candnext = cand->next;
@@ -229,9 +287,21 @@ diff -upr man-db-2.6.3.orig/src/man.c man-db-2.6.3/src/man.c
  	}
  
  	return *found ? OK : NOT_FOUND;
-diff -upr man-db-2.6.3.orig/src/manp.c man-db-2.6.3/src/manp.c
---- man-db-2.6.3.orig/src/manp.c	2013-09-24 18:10:58.733634000 +0200
-+++ man-db-2.6.3/src/manp.c	2013-09-24 18:11:49.097281554 +0200
+diff -up man-db-2.6.3/src/mandb.c.valgrind-mem man-db-2.6.3/src/mandb.c
+--- man-db-2.6.3/src/mandb.c.valgrind-mem	2012-02-21 12:15:11.000000000 +0100
++++ man-db-2.6.3/src/mandb.c	2013-04-05 18:19:01.425892362 +0200
+@@ -247,7 +247,7 @@ static int xcopy (const char *from, cons
+ 	}
+ 
+ 	while (!feof (ifp) && !ferror (ifp)) {
+-		char buf[32 * 1024];
++		char buf[9 * 1024];
+ 		size_t in = fread (buf, 1, sizeof (buf), ifp);
+ 		if (in > 0) {
+ 			if (fwrite (buf, 1, in, ofp) == 0 && ferror (ofp)) {
+diff -up man-db-2.6.3/src/manp.c.valgrind-mem man-db-2.6.3/src/manp.c
+--- man-db-2.6.3/src/manp.c.valgrind-mem	2013-04-05 18:19:01.412892553 +0200
++++ man-db-2.6.3/src/manp.c	2013-04-05 18:19:01.428892318 +0200
 @@ -504,6 +504,7 @@ static char *get_nls_manpath (const char
  
  		closedir (mandir);
@@ -248,18 +318,21 @@ diff -upr man-db-2.6.3.orig/src/manp.c man-db-2.6.3/src/manp.c
  
  	/* Always try untranslated pages as a last resort. */
  	locale_manpath = get_nls_manpath (manpathlist, "C");
-@@ -820,6 +822,8 @@ next:
+@@ -820,6 +822,11 @@ next:
  		free (buf);
  		buf = NULL;
  	}
 +
-+	free (buf);
++	if (buf) {
++		free (buf);
++		buf = NULL;
++	}
  }
  
  static void free_config_file (void *unused ATTRIBUTE_UNUSED)
-diff -upr man-db-2.6.3.orig/src/whatis.c man-db-2.6.3/src/whatis.c
---- man-db-2.6.3.orig/src/whatis.c	2012-06-18 12:23:37.000000000 +0200
-+++ man-db-2.6.3/src/whatis.c	2013-09-24 18:11:49.097281554 +0200
+diff -up man-db-2.6.3/src/whatis.c.valgrind-mem man-db-2.6.3/src/whatis.c
+--- man-db-2.6.3/src/whatis.c.valgrind-mem	2012-06-18 12:23:37.000000000 +0200
++++ man-db-2.6.3/src/whatis.c	2013-04-05 18:19:01.429892304 +0200
 @@ -501,7 +501,7 @@ static inline int do_whatis_section (con
  
  static int suitable_manpath (const char *manpath, const char *page_dir)
