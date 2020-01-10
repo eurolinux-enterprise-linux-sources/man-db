@@ -4,7 +4,7 @@
 Summary: Tools for searching and reading man pages
 Name: man-db
 Version: 2.6.3
-Release: 6%{?dist}
+Release: 9%{?dist}
 # GPLv2+ .. man-db
 # GPLv3+ .. gnulib
 License: GPLv2+ and GPLv3+
@@ -135,6 +135,16 @@ install -D -p -m 0644 %{SOURCE2} $RPM_BUILD_ROOT/etc/sysconfig/man-db
 %lang(it)   %{_datadir}/man/it/man*/*
 
 %changelog
+* Mon Mar 17 2014 Peter Schiffer <pschiffe@redhat.com> - 2.6.3-9
+- resolves: #1067085
+  fixed crash when running man with -M parameter
+
+* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 2.6.3-8
+- Mass rebuild 2014-01-24
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 2.6.3-7
+- Mass rebuild 2013-12-27
+
 * Mon Apr  8 2013 Peter Schiffer <pschiffe@redhat.com> - 2.6.3-6
 - resolves: #948695
   fixed double free
