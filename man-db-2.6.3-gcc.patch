@@ -1,0 +1,28 @@
+diff -up man-db-2.6.3/src/check_mandirs.c.gcc man-db-2.6.3/src/check_mandirs.c
+--- man-db-2.6.3/src/check_mandirs.c.gcc	2013-03-18 13:56:24.000000000 +0100
++++ man-db-2.6.3/src/check_mandirs.c	2013-03-18 14:03:20.081132550 +0100
+@@ -440,7 +440,10 @@ static int testmandirs (const char *path
+ 		return 0;
+ 	}
+ 
+-	chdir (path);
++	if (chdir (path) != 0) {
++		error (0, errno, _("can't change to directory %s"), path);
++		return 0;
++	}
+ 
+ 	while( (mandir = readdir (dir)) ) {
+ 		if (strncmp (mandir->d_name, "man", 3) != 0)
+diff -up man-db-2.6.3/src/descriptions_store.c.gcc man-db-2.6.3/src/descriptions_store.c
+--- man-db-2.6.3/src/descriptions_store.c.gcc	2011-04-10 03:02:26.000000000 +0200
++++ man-db-2.6.3/src/descriptions_store.c	2013-03-18 13:53:03.889580350 +0100
+@@ -71,7 +71,7 @@ void store_descriptions (const struct pa
+ 
+ 	if (trace) {
+ 		for (i = 0; i < trace->len; ++i)
+-			debug ("trace->names[%d] = '%s'\n",
++			debug ("trace->names[%zu] = '%s'\n",
+ 			       i, trace->names[i]);
+ 	}
+ 
+diff -up man-db-2.6.3/src/man.c.gcc man-db-2.6.3/src/man.c
